@@ -1,10 +1,14 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { ListTablesCommand, DynamoDBClient } from "@aws-sdk/client-dynamodb";
 
+import * as domain from "render-test"
+
 const client = new DynamoDBClient({});
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     console.info('hello lambda');
+
+    domain.printMsg();
 
     const command = new ListTablesCommand({});
     const response = await client.send(command);
