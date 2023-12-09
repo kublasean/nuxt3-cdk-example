@@ -2,4 +2,4 @@
 
 import * as domain from '../index'
 
-domain.printMsg();
+domain.setNuxtLambdaCdnUrl('lambda name / arn goes here', 'test');

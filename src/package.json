@@ -12,5 +12,8 @@
   "license": "MIT",
   "devDependencies": {
     "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "@aws-sdk/client-lambda": "^3.470.0"
   }
 }
