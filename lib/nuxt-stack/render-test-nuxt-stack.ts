@@ -14,7 +14,6 @@ import * as origins from "aws-cdk-lib/aws-cloudfront-origins"
 import * as triggers from 'aws-cdk-lib/triggers';
 
 
-
 export class RenderTestNuxtStack extends cdk.Stack {
 
     private cacheForeverPolicy: cloudfront.ICachePolicy
@@ -27,7 +26,9 @@ export class RenderTestNuxtStack extends cdk.Stack {
         const assetsBucket = new s3.Bucket(this, 'AppAssetsBucket', {
             removalPolicy: cdk.RemovalPolicy.DESTROY,
             autoDeleteObjects: true,
-            objectOwnership: s3.ObjectOwnership.BUCKET_OWNER_ENFORCED
+            objectOwnership: s3.ObjectOwnership.BUCKET_OWNER_ENFORCED,
+            blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+            publicReadAccess: false
         });
 
         // Deploy assets to bucket
@@ -71,17 +72,10 @@ export class RenderTestNuxtStack extends cdk.Stack {
         });
 
         // Additional behavior: static pages cached forever after being rendered the first time by Nuxt Lambda
-        const cacheForeverPagePaths: string[] = [
+        const staticPagesPaths: string[] = [
             '/', 
             '/level-one/level-two/*'
         ]
-        const staticPagesPaths: string[] = [];
-        for (const path of cacheForeverPagePaths) {
-            staticPagesPaths.push(path);
-            if (path.length && path.charAt(path.length-1) === '/') {
-                staticPagesPaths.push(`${path}index.html`);
-            }
-        }
         this.addCacheForeverBehaviors(staticPagesPaths, appLambdaOrigin);
 
         // Additional behavior: public assets in S3 cached forever after gotten first time
