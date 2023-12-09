@@ -1,16 +1,20 @@
-import { LambdaClient, UpdateFunctionConfigurationCommand, Environment } from "@aws-sdk/client-lambda"; // ES Modules import
+import { getDistributionUrl, getNuxtLambdaCdnUrl, setNuxtLambdaCdnUrl } from "./cdn-helper";
 
-export async function setNuxtLambdaCdnUrl(id: string, cdnUrl: string) {
-    const client = new LambdaClient();
+export async function setNuxtLambdaCdnUrlFromCloudfrontDistribution(lambdaId: string, distributionId: string) {
+    const cdnUrl = await getDistributionUrl(distributionId);
 
-    const response = await client.send(new UpdateFunctionConfigurationCommand({
-        FunctionName: id,
-        Environment: {
-            Variables: {
-                "NUXT_APP_CDN_URL": cdnUrl
-            }
-        }
-    }));
+    console.info(`cloudfront domain: <${cdnUrl}>`);
 
-    console.info(response);
+    if (!cdnUrl) {
+        throw Error('Could not set NUXT_APP_CDN_URL, CDN domain was undefined');
+    }
+
+    const lambdaCdnUrl = await getNuxtLambdaCdnUrl(lambdaId);
+    if (cdnUrl === lambdaCdnUrl) {
+        console.info(`NUXT_APP_CDN_URL matches cloudfront domain ${cdnUrl}, quitting`);
+        return;
+    }
+
+    console.info(`NUXT_APP_CDN_URL was <${lambdaCdnUrl}> setting to <${cdnUrl}>`);
+    await setNuxtLambdaCdnUrl(lambdaId, cdnUrl);
 }

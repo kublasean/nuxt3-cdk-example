@@ -14,6 +14,7 @@ import * as origins from "aws-cdk-lib/aws-cloudfront-origins"
 import * as triggers from 'aws-cdk-lib/triggers';
 
 
+
 export class RenderTestNuxtStack extends cdk.Stack {
 
     private cacheForeverPolicy: cloudfront.ICachePolicy
@@ -102,7 +103,19 @@ export class RenderTestNuxtStack extends cdk.Stack {
                 [APP_LAMBDA_ENV]: appLambda.functionArn
             }
         });
-        this.cdn.grantCreateInvalidation(deployHelperLambda);
+        this.cdn.grant(deployHelperLambda, 
+            "cloudfront:GetDistribution",
+            "cloudfront:CreateInvalidation"
+        );
+        deployHelperLambda.addToRolePolicy(new cdk.aws_iam.PolicyStatement({
+            resources: [
+                appLambda.functionArn
+            ],
+            actions: [
+                "lambda:GetFunctionConfiguration",
+                "lambda:SetFunctionConfiguration"
+            ]
+        }));
 
         new triggers.Trigger(this, `${id}-cacheInvalidationDeploymentTrigger`, {
             handler: deployHelperLambda,

@@ -1,23 +1,21 @@
 import { Handler } from 'aws-lambda';
-import { setNuxtLambdaCdnUrl } from 'render-test';
+import * as domain from 'render-test';
 
 export const APP_LAMBDA_ENV: string = 'APP_LAMBDA_ARN';
-export const APP_DISTRIBUTION_ENV: string = 'APP_DISTRIBUTION_ARN';
+export const APP_DISTRIBUTION_ENV: string = 'APP_DISTRIBUTION_ID';
 
 export const handler: Handler = async (event, context) => {
 
-    console.log(event);
-
-    console.log(context);
-
     const appLambdaArn = process.env[APP_LAMBDA_ENV];
+    const appDistributionId = process.env[APP_DISTRIBUTION_ENV];
+    console.info(`appLambdaArn: <${appLambdaArn}>`);
+    console.info(`appDistributionId: <${appDistributionId}>`);
 
-    const appDistributionArn = process.env[APP_DISTRIBUTION_ENV];
+    if (!appLambdaArn || !appDistributionId) {
+        throw Error('Environment variables must be set');
+    }
 
-    console.info(appLambdaArn);
-    console.info(appDistributionArn);
-
-    //setNuxtLambdaCdnUrl(appLambdaArn, );
+    await domain.setNuxtLambdaCdnUrlFromCloudfrontDistribution(appLambdaArn, appDistributionId);
 
     return true;
 };
