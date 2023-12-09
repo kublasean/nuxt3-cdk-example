@@ -1,4 +1,6 @@
-import { getDistributionUrl, getNuxtLambdaCdnUrl, setNuxtLambdaCdnUrl } from "./cdn-helper";
+import { getDistributionUrl, getNuxtLambdaCdnUrl, setNuxtLambdaCdnUrl, invalidateDistributionCache } from "./cdn-helper";
+
+export { invalidateDistributionCache };
 
 export async function setNuxtLambdaCdnUrlFromCloudfrontDistribution(lambdaId: string, distributionId: string) {
     const cdnUrl = await getDistributionUrl(distributionId);
@@ -18,3 +20,4 @@ export async function setNuxtLambdaCdnUrlFromCloudfrontDistribution(lambdaId: st
     console.info(`NUXT_APP_CDN_URL was <${lambdaCdnUrl}> setting to <${cdnUrl}>`);
     await setNuxtLambdaCdnUrl(lambdaId, cdnUrl);
 }
+

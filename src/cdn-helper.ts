@@ -1,5 +1,5 @@
 import { GetFunctionConfigurationCommand, LambdaClient, UpdateFunctionConfigurationCommand } from "@aws-sdk/client-lambda"; // ES Modules import
-import { CloudFrontClient, GetDistributionCommand } from "@aws-sdk/client-cloudfront"; // ES Modules import
+import { CloudFrontClient, CreateInvalidationCommand, GetDistributionCommand } from "@aws-sdk/client-cloudfront"; // ES Modules import
 
 const lambdaClient = new LambdaClient();
 const cloudFrontClient = new CloudFrontClient();
@@ -33,4 +33,21 @@ export async function getDistributionUrl(distributionId: string): Promise<string
 
     const domain = response.Distribution?.DomainName;
     return domain ? `https://${domain}` : undefined;
+}
+
+export async function invalidateDistributionCache(distributionId: string) {
+    const resp = await cloudFrontClient.send(new CreateInvalidationCommand({
+        DistributionId: distributionId, 
+        InvalidationBatch: {
+            Paths: {
+                Quantity: 1,
+                Items: [
+                    '/*'
+                ]
+            },
+            CallerReference: new Date().toUTCString()
+        }
+    }));
+
+    console.debug(resp);
 }

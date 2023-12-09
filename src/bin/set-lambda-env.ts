@@ -16,7 +16,9 @@ async function main() {
     const cdnDomain = await cdn.getDistributionUrl(distributionId);
     console.info(`cloudfront domain: <${cdnDomain}>`);*/
 
-    await domain.setNuxtLambdaCdnUrlFromCloudfrontDistribution(nuxtLambdaArn, distributionId);
+    //await domain.setNuxtLambdaCdnUrlFromCloudfrontDistribution(nuxtLambdaArn, distributionId);
+
+    await domain.invalidateDistributionCache(distributionId);
 }
 
 main();
