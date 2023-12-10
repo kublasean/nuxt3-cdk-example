@@ -11,7 +11,7 @@ export class RenderTestApiStack extends cdk.Stack {
         super(scope, id, props);
 
         // API Gateway for HTTP API
-        const appGateway = new apigwv2.HttpApi(this, 'RenderTestApi', {
+        const appGateway = new apigwv2.HttpApi(this, 'api', {
             description: 'API for RenderTestService'
         });
 
@@ -22,7 +22,7 @@ export class RenderTestApiStack extends cdk.Stack {
         });
 
         appGateway.addRoutes({
-            integration: new HttpLambdaIntegration(`hello-integration`, helloLambda),
+            integration: new HttpLambdaIntegration(`helloApiIntegration`, helloLambda),
             path: '/hello',
             methods: [HttpMethod.GET]
         });

@@ -12,7 +12,67 @@ import * as s3deploy from "aws-cdk-lib/aws-s3-deployment"
 import * as cloudfront from "aws-cdk-lib/aws-cloudfront"
 import * as origins from "aws-cdk-lib/aws-cloudfront-origins"
 import * as triggers from 'aws-cdk-lib/triggers';
+import { ExecSyncOptions, execSync } from 'child_process';
+import { OutputFormat } from 'aws-cdk-lib/aws-lambda-nodejs';
 
+function getNuxtAppBuilder(): cdk.ILocalBundling {
+
+    return {
+        tryBundle(outputDir: string, options: cdk.BundlingOptions): boolean {
+            const execOptions: ExecSyncOptions = { stdio: ['ignore', process.stderr, 'inherit'] };
+            const commands: string[] = [
+                'npm install',
+                'npm run build',
+                `cp .output ${outputDir}`
+            ];
+
+            console.log("Building nuxtApp");
+            for (const command of commands) {
+                const output = execSync(command, execOptions);
+                console.log(output);
+            }
+            return true;
+        }
+    }
+}
+
+interface NuxtAppPaths {
+    public: string,
+    handler: string,
+    lockFile: string
+}
+
+function buildNuxtApp(nuxtAppSourcePath: string): NuxtAppPaths {
+
+    const defaultPaths: NuxtAppPaths = {
+        public: path.join(nuxtAppSourcePath, '.output', 'public'),
+        handler: path.join(nuxtAppSourcePath, '.output', 'server', 'index.mjs'),
+        lockFile: path.join(nuxtAppSourcePath, 'package-lock.json')
+    };
+
+    const execOptions: ExecSyncOptions = { stdio: ['ignore', process.stderr, 'inherit'] };
+
+    if (!fs.existsSync(defaultPaths.public) || !fs.existsSync(defaultPaths.handler)) {
+
+        const commands: string[] = [
+            'npm install', 
+            'npm run build'
+        ]
+
+        console.log(`building NuxtApp in ${nuxtAppSourcePath}...`);
+
+        for (const command of commands) {
+            execSync(command, {
+                ...execOptions,
+                cwd: nuxtAppSourcePath
+            });
+        }
+    } else {
+        console.log('using pre-built NuxtApp, build manually to update');
+    }
+
+    return defaultPaths;
+}
 
 export class RenderTestNuxtStack extends cdk.Stack {
 
@@ -22,8 +82,11 @@ export class RenderTestNuxtStack extends cdk.Stack {
     constructor(scope: Construct, id: string, props?: cdk.StackProps) {
         super(scope, id, props);
 
-        // Bucket should not be publicly accessible
-        const assetsBucket = new s3.Bucket(this, 'AppAssetsBucket', {
+        // Build nuxtApp locally
+        const nuxtApp = buildNuxtApp(path.join(__dirname, 'app'));
+
+        // Private site assets bucket (for css, fonts, images, etc..)
+        const assetsBucket = new s3.Bucket(this, 'assetsBucket', {
             removalPolicy: cdk.RemovalPolicy.DESTROY,
             autoDeleteObjects: true,
             objectOwnership: s3.ObjectOwnership.BUCKET_OWNER_ENFORCED,
@@ -31,21 +94,28 @@ export class RenderTestNuxtStack extends cdk.Stack {
             publicReadAccess: false
         });
 
-        // Deploy assets to bucket
-        const assetsDeployment = new s3deploy.BucketDeployment(this, 'DeployAssets', {
-            sources: [s3deploy.Source.asset(path.join(__dirname, 'app/.output/public'))],
+        // Deploy nuxt public output to site assets bucket
+        const assetsDeployment = new s3deploy.BucketDeployment(this, 'assetsDeployment', {
+            sources: [s3deploy.Source.asset(nuxtApp.public)],
             destinationBucket: assetsBucket,
             prune: true
         });
 
-        const appLambda = new cdk.aws_lambda_nodejs.NodejsFunction(this, 'AppLambda', {
+        const appLambda = new cdk.aws_lambda_nodejs.NodejsFunction(this, 'appLambda', {
             description: "Runs the Nuxt app server on AWS Lambda",
-            entry: path.join(__dirname, 'app/.output/server/index.mjs'),
+            entry: nuxtApp.handler,
             runtime: lambda.Runtime.NODEJS_18_X,
             timeout: cdk.Duration.seconds(15),
-            depsLockFilePath: path.join(__dirname, 'app/package-lock.json'),
-            tracing: lambda.Tracing.ACTIVE
+            depsLockFilePath: nuxtApp.lockFile,
+            tracing: lambda.Tracing.ACTIVE,
+            bundling: {
+                format: OutputFormat.ESM,
+                esbuildArgs: {
+                    "--log-override:ignored-bare-import": 'silent'
+                }
+            }
         });
+
         const appLambdaUrl = appLambda.addFunctionUrl({
             authType: lambda.FunctionUrlAuthType.NONE
         });
@@ -53,7 +123,7 @@ export class RenderTestNuxtStack extends cdk.Stack {
             protocolPolicy: cloudfront.OriginProtocolPolicy.HTTPS_ONLY
         });
 
-        this.cacheForeverPolicy = new cloudfront.CachePolicy(this, `${id}-CacheForeverPolicy`, {
+        this.cacheForeverPolicy = new cloudfront.CachePolicy(this, 'cacheForeverPolicy', {
             comment: 'Policy to cache data in CDN until invalidated by the next deploy, or a year passes',
             minTtl: cdk.Duration.days(365),
             enableAcceptEncodingBrotli: true,
@@ -61,7 +131,7 @@ export class RenderTestNuxtStack extends cdk.Stack {
         });
 
         // CDN, default behavior: send request to Nuxt Lambda for SSR, never cache
-        this.cdn = new cloudfront.Distribution(this, `${id}-AppCdn`, {
+        this.cdn = new cloudfront.Distribution(this, 'appCdn', {
             defaultBehavior: {
                 origin: appLambdaOrigin,
                 allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
@@ -79,7 +149,7 @@ export class RenderTestNuxtStack extends cdk.Stack {
         this.addCacheForeverBehaviors(staticPagesPaths, appLambdaOrigin);
 
         // Additional behavior: public assets in S3 cached forever after gotten first time
-        const assetsPaths: string[] = fs.readdirSync(path.join(__dirname, 'app/.output/public'), { withFileTypes: true }).map(item => {
+        const assetsPaths: string[] = fs.readdirSync(nuxtApp.public, { withFileTypes: true }).map(item => {
             if (item.isDirectory()) {
                 return `${item.name}/*`
             }
@@ -111,7 +181,7 @@ export class RenderTestNuxtStack extends cdk.Stack {
             ]
         }));
 
-        new triggers.Trigger(this, `${id}-cacheInvalidationDeploymentTrigger`, {
+        new triggers.Trigger(this, 'invalidateTrigger', {
             handler: deployHelperLambda,
             invocationType: triggers.InvocationType.REQUEST_RESPONSE,
             executeAfter: [assetsDeployment, appLambda, this.cdn]

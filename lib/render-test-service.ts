@@ -7,6 +7,6 @@ export class RenderTestService extends Construct {
         super(scope, id);
 
         new RenderTestApiStack(this, 'ApiStack');
-        new RenderTestNuxtStack(this, 'NuxtAppStack');
+        new RenderTestNuxtStack(this, 'NuxtStack');
     }
 }

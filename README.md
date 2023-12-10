@@ -10,6 +10,17 @@ Project to demonstrate:
 
 The `cdk.json` file tells the CDK Toolkit how to execute your app
 
+## Build steps
+From project root run:
+
+```bash
+npm install
+cdk deploy RenderTestService/ApiStack --profile {aws_profile}
+cdk deploy RenderTestService/NuxtStack --profile {aws_profile}
+```
+
+That's it.
+
 ## Testing locally
 
 ### API Stack
