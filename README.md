@@ -23,6 +23,20 @@ That's it.
 
 ## Testing locally
 
+### Shared code
+On one terminal
+```bash
+cd src
+npm run watch
+```
+
+Make a code change, then on another terminal test it in a script
+```bash
+export AWS_PROFILE=[profile]
+cd src
+node bin/[script name]
+```
+
 ### API Stack
 Pre-reqs:
 
@@ -30,14 +44,32 @@ Pre-reqs:
 * [install SAM-CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html)
 * [install Docker](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-docker.html)
 
-
+TODO: update this
 Everytime a change is made do:
 
-```
+```bash
 cdk synth
 sam local start-api -t ./cdk.out/RenderTestServiceApiStack[UUID].template.json --warm-containers eager --profile [AWS CLI Profile]
+```
 
-sam local start-api -t ./cdk.out/RenderTestServiceNuxtAppStack89703BDE.template.json --warm-containers eager --profile highheat-seandev
+### Nuxt Stack
+
+```bash
+cd lib/nuxt-stack/app
+npm run dev
+```
+
+## Stats
+
+Full fresh deploy time for NuxtStack:
+
+```bash
+RenderTestService/NuxtStack: deploying... [1/1]
+RenderTestServiceNuxtStack4B09022A: creating CloudFormation changeset...
+
+ ✅  RenderTestService/NuxtStack
+
+✨  Deployment time: 345.6s
 ```
 
 ## Useful commands
@@ -48,20 +80,3 @@ sam local start-api -t ./cdk.out/RenderTestServiceNuxtAppStack89703BDE.template.
 * `npx cdk deploy`  deploy this stack to your default AWS account/region
 * `npx cdk diff`    compare deployed stack with current state
 * `npx cdk synth`   emits the synthesized CloudFormation template
-
-## Stats
-
-Full deploy time for NuxtStack:
-
-```bash
-✅  RenderTestService/NuxtAppStack
-✨  Deployment time: 381.33s
-```
-
-Subsequent deploy (no changes), just re-triggers deploy lambda:
-
-```bash
-✅  RenderTestService/NuxtAppStack
-
-✨  Deployment time: 64.86s
-```

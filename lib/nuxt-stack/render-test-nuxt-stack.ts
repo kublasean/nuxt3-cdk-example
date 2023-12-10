@@ -177,7 +177,8 @@ export class RenderTestNuxtStack extends cdk.Stack {
             ],
             actions: [
                 "lambda:GetFunctionConfiguration",
-                "lambda:SetFunctionConfiguration"
+                "lambda:SetFunctionConfiguration",
+                "lambda:UpdateFunctionConfiguration"
             ]
         }));
 
