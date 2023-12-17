@@ -138,3 +138,5 @@ node_modules
 .cdk.staging
 cdk.out
 .gitignore
+
+.DS_Store
