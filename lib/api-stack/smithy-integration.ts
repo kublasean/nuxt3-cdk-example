@@ -40,7 +40,6 @@ export class SpecMethod implements ISpecMethod {
         return this.api.arnForExecuteApi(this.httpMethod, pathForArn(this.resourcePath), stage);
     }
 
-    // TODO fix this?
     get testMethodArn(): string {
         return this.api.arnForExecuteApi(this.httpMethod, pathForArn(this.resourcePath), 'test-invoke-stage');
     }
@@ -121,7 +120,7 @@ export class SmithyLambdaIntegration extends SmithyIntegration {
             this.handler.addPermission(`ApiPermission.Test.${desc}`, {
                 principal,
                 scope: method.api,
-                sourceArn: method.testMethodArn,
+                sourceArn: cdk.Lazy.string({ produce: () => method.testMethodArn })
             });
         }
     }

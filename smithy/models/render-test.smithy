@@ -21,9 +21,24 @@ service RenderTest {
     // Add common errors that could be thrown by any route in the service
 }
 
+@input
+structure SayHiV1Input {
+    @required
+    @httpQuery("name")
+    name: String
+}
+
+@input
+structure SayHiV2Input {
+    @required
+    @httpQuery("name")
+    name: String
+}
+
 @readonly
 @http(method: "GET", uri: "/hello.v1")
 operation SayHiV1 {
+    input: SayHiV1Input
     output := {
         @required
         greeting: String
@@ -33,6 +48,7 @@ operation SayHiV1 {
 @readonly
 @http(method: "GET", uri: "/hello.v2")
 operation SayHiV2 {
+    input: SayHiV2Input
     output := {
         @required
         greeting: String
